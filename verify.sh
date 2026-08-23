@@ -97,4 +97,14 @@ s_large="$(run_n 2000)"
   exit 1; }
 echo "  ok | 50 and 2000 decode calls: identical default-region stats"
 
+# --- 5. the second host -------------------------------------------------------
+# The same C, driven from Python via ctypes -- including the impolite and
+# abusive calls the Ruby extension never makes. One polite client cannot see
+# the bugs politeness never reaches (mere v0.1.312 came out of this harness).
+CC="${CC:-cc}"
+"$CC" -O1 -w -fPIC -shared "$DIR/ext/mpng/libmpng.c" -o "$TMP/libmpng.so" \
+  || { echo "FAIL verify: plain .so build for the python host"; exit 1; }
+python3 "$DIR/test/python_host.py" "$TMP/libmpng.so" "$PNG1" "$PNG1.expected" \
+  || { echo "FAIL verify: python host"; exit 1; }
+
 echo "verify: ok"

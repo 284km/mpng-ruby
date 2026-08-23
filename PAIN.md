@@ -42,6 +42,18 @@ during module init (module state persists; copy-on-store covers values
 stored across the seam). Decoding the same PNG 50 times and 2000 times now
 reports byte-identical default-region stats.
 
+## P6 — it worked in every polite test (v0.1.312)
+
+The second host found what the first one never could. `mere_lib_init` was a
+pthread_once; `mere_lib_shutdown` freed the default region; once cannot be
+re-armed, so shutdown-then-call reused freed memory — and answered
+*correctly* in every run, because nothing had reclaimed the pages. Only the
+abusive ctypes harness (test/python_host.py) plus AddressSanitizer made it
+loud. The lifecycle is now a mutex and a flag: shutdown is idempotent, a
+later call re-initializes with fresh module state. A boundary tested only by
+a polite client keeps whatever bugs politeness cannot reach; this repo now
+ships the impolite one.
+
 ## P5 — the consumer side was ~60 lines of Mere and ~80 of C
 
 `libmpng.mere` adapts mpng's vec-based pipeline to bytes-in/bytes-out; the

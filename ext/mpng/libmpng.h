@@ -16,7 +16,9 @@ typedef enum { MERE_OK = 0, MERE_FAIL = 1 } mere_status;
 #endif
 
 void mere_lib_init(void);      /* optional: wrappers call it themselves */
-void mere_lib_shutdown(void);
+void mere_lib_shutdown(void); /* idempotent; a later call re-initializes
+                                 (module state starts fresh). do not race
+                                 in-flight calls. */
 void mere_lib_free(void* p);
 
 mere_status mere_libmpng_png_info(mere_buf __a0, mere_buf* out, mere_buf* err);
