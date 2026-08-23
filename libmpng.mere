@@ -1,0 +1,55 @@
+// libmpng.mere — the boundary of the mpng Ruby gem.
+//
+// This file is what `mere -c --lib` sees: its top-level functions with
+// int/float/bool/str/bytes types become the C exports. Everything heavier
+// lives in mpng itself; this file only adapts mpng's vec-based pipeline to
+// the bytes-in / bytes-out shape a foreign host wants.
+import "github.com/284km/mpng/mpng.mere";
+
+// what the header says, as a string (mpng's `info` prints it instead)
+let png_info = fn (data: bytes) ->
+  let v = vec_of_bytes data in
+  if is_png v == false then fail "not a PNG"
+  else
+    let h = read_header v in
+    if vec_len h == 0 then fail "no IHDR: not a PNG this can read"
+    else
+      let g = gamma v in
+      let head =
+        str_of_int (vec_get h 0) ++ "x" ++ str_of_int (vec_get h 1)
+        ++ " " ++ str_of_int (vec_get h 2) ++ "-bit "
+        ++ colour_name (vec_get h 3)
+        ++ (if vec_get h 4 == 1 then " interlaced" else "")
+        ++ (if has_transparency v then " +tRNS" else "")
+        ++ (if g > 0 then " gamma " ++ str_of_int g else "") in
+      let t = text_chunks v in
+      let rec join = fn (i: int) -> fn (acc: str) ->
+        if i >= vec_len t then acc
+        else join (i + 1) (acc ++ "\n" ++ vec_get t i) in
+      join 0 head;
+
+// decode: a PNG's pixels as a binary PPM (P6)
+let png_to_ppm = fn (data: bytes) ->
+  let v = vec_of_bytes data in
+  if is_png v == false then fail "not a PNG"
+  else bytes_of_vec (ppm_bytes v);
+
+// encode: a binary PPM (P6, maxval 255 or 65535) as a PNG
+let ppm_to_png = fn (data: bytes) ->
+  let v = vec_of_bytes data in
+  let f = read_ppm v in
+  if vec_len f < 4 then fail "not a PPM this can read (P6 only)"
+  else
+    let width = vec_get f 0 in
+    let height = vec_get f 1 in
+    let maxval = vec_get f 2 in
+    let start = vec_get f 3 in
+    let wide = maxval > 255 in
+    let bytes_per_sample = if wide then 2 else 1 in
+    let pixels = vec_new () in
+    let rec copy = fn (i: int) ->
+      if i >= width * height * 3 * bytes_per_sample then ()
+      else let _ = vec_push pixels (vec_get v (start + i)) in copy (i + 1) in
+    let _ = copy 0 in
+    bytes_of_vec (if wide then encode16 pixels width height
+                  else encode_rgb8 pixels width height);

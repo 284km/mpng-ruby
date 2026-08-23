@@ -1,0 +1,7 @@
+ext/mpng/*.o
+ext/mpng/*.bundle
+ext/mpng/*.so
+ext/mpng/Makefile
+ext/mpng/mkmf.log
+*.gem
+.mere_modules/
