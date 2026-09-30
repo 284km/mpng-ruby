@@ -5,3 +5,4 @@ ext/mpng/Makefile
 ext/mpng/mkmf.log
 *.gem
 .mere_modules/
+ext/mpng/*.dSYM/
