@@ -1,6 +1,6 @@
 # mpng (Ruby gem)
 
-PNG decoding and encoding for Ruby, powered by [mpng](https://github.com/284km/mpng) —
+PNG decoding and encoding for Ruby, powered by [mpng](https://github.com/merelang/mpng) —
 a PNG codec written in the [Mere](https://github.com/merelang/mere) language.
 
 Mere compiles to C. `libmpng.mere` names the boundary (three functions over

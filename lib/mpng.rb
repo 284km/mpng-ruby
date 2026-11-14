@@ -4,7 +4,7 @@ require_relative "mpng/version"
 require "mpng_ext"
 
 # Mpng decodes and encodes PNG images. The implementation is mpng
-# (https://github.com/284km/mpng), a PNG codec written in Mere and compiled
+# (https://github.com/merelang/mpng), a PNG codec written in Mere and compiled
 # to C; this gem wraps its C boundary.
 #
 #   Mpng.info(png_bytes)     #=> "9x6 8-bit rgb"

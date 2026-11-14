@@ -4,7 +4,7 @@
 // int/float/bool/str/bytes types become the C exports. Everything heavier
 // lives in mpng itself; this file only adapts mpng's vec-based pipeline to
 // the bytes-in / bytes-out shape a foreign host wants.
-import "github.com/284km/mpng/mpng.mere";
+import "github.com/merelang/mpng/mpng.mere";
 
 // what the header says, as a string (mpng's `info` prints it instead)
 let png_info = fn (data: bytes) ->

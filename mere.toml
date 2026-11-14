@@ -4,4 +4,4 @@ version = "0.1.0"
 path = "github.com/284km/mpng-ruby"
 
 [dependencies]
-mpng = { git = "https://github.com/284km/mpng", rev = "main" }
+mpng = { git = "https://github.com/merelang/mpng", rev = "main" }
