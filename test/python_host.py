@@ -66,27 +66,60 @@ def main() -> int:
     lib.mere_lib_shutdown()
     lib.mere_lib_shutdown()  # idempotent
 
-    # concurrent: ctypes releases the GIL during the call, so these are real threads
-    bad = []
+    # concurrent: ctypes releases the GIL during the call, so these are real
+    # threads. libmpng has module state (mgz's lookup tables are top-level
+    # Vecs), and since mere v0.1.582 such a library refuses a call that
+    # overlaps another thread's instead of letting them share that state.
+    # Its contract: one thread at a time, or a lock around the calls.
+    busy = b"called while another thread is inside this library"
 
-    def worker() -> None:
+    def run(threads_n: int, worker) -> list:
+        bad: list = []
+        threads = [threading.Thread(target=worker, args=(bad,)) for _ in range(threads_n)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        return bad
+
+    # with a lock, as the refusal tells the host to: every call answers right
+    lock = threading.Lock()
+
+    def locked(bad: list) -> None:
+        o, e = MereBuf(), MereBuf()
+        for _ in range(200):
+            with lock:
+                rc = lib.mere_libmpng_png_to_ppm(buf(png), ctypes.byref(o), ctypes.byref(e))
+                data = take(o) if rc == 0 else take(e)
+            if rc != 0 or data != expected:
+                bad.append(data[:120])
+                return
+
+    bad = run(8, locked)
+    assert not bad, f"locked concurrent decode differs: {bad[0]!r}"
+
+    # without a lock: a call either answers right or is refused, in words --
+    # never a wrong answer
+    refused = []
+
+    def unlocked(bad: list) -> None:
         o, e = MereBuf(), MereBuf()
         for _ in range(200):
             if lib.mere_libmpng_png_to_ppm(buf(png), ctypes.byref(o), ctypes.byref(e)) != 0:
-                bad.append(1)
-                return
-            if take(o) != expected:
-                bad.append(1)
+                msg = take(e)
+                if busy not in msg:
+                    bad.append(msg[:120])
+                    return
+                refused.append(1)
+            elif take(o) != expected:
+                bad.append(b"wrong answer")
                 return
 
-    threads = [threading.Thread(target=worker) for _ in range(8)]
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
-    assert not bad, "concurrent python decode differs"
+    bad = run(8, unlocked)
+    assert not bad, f"unlocked concurrent decode: {bad[0]!r}"
 
-    print("python host: ok (polite, impolite, lifecycle abuse, 8 threads)")
+    print(f"python host: ok (polite, impolite, lifecycle abuse, 8 threads locked; "
+          f"unlocked refused {len(refused)} of 1600)")
     return 0
 
 
